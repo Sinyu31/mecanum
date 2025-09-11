@@ -66,9 +66,9 @@ static inline int write_pwm(const MotorDriveGPIO* motordrive, unsigned int in1Du
 #ifdef DEBUG
         debug_log(stderr, "[gpio invalid operation error]: Failed to write pwm to GPIO (%u, %u) \n", motordrive->in1, motordrive->in2);
 #endif //DEBUG
-        return -1;
+        return RC_INVALID_OPERATION;
     }
-    return 0;
+    return RC_OK;
 }
 
 int init_wheel(MotorDriveInfo* target) {

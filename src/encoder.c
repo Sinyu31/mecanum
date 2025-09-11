@@ -30,7 +30,7 @@
  *  A         |     |     |     |     |     |     |     |     |            ch A rising: ch B is HIGH
  *       0    |_____|     |_____|     |_____|     |_____|     |_           ch A falling: ch B is LOW
  * 
- *       -------------------------i--------------------------------->  t  
+ *       ----------------------------------------------------------->  t  
  *
  *       1        _____       _____       _____       _____
  *  B            |     |     |     |     |     |     |     |               ch B rising: ch A is LOw
@@ -83,7 +83,7 @@ static void on_edge_changed(int gpio, int level, uint32_t tick, void* userdata) 
     
     ei->position += TRANSITION[prevState][currentState];
     ei->prevState = currentState;
-   ei->tick = tick;
+    ei->tick = tick;
 }  
 
 static inline int init_encoder_gpio(const EncoderInfo* target) {
@@ -107,7 +107,7 @@ static inline int init_encoder_gpio(const EncoderInfo* target) {
     return RC_OK;
  } 
  
-int init_encoder(EncoderInfo* target, EncoderMultipication mode) {
+int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
    assert(target != NULL);
   
     if (target->initialized) {
