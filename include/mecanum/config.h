@@ -19,6 +19,9 @@
 
 #define GPIO_UNASSIGNED 0U
 
+#define HIGH 1
+#define LOW 0
+
 #define RC_OK 0
 #define RC_ALREADY_INITIALIZED 1
 #define RC_INVALID_OPERATION -1

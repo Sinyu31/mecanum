@@ -101,7 +101,7 @@ int init_encoder(EncoderInfo* target, EncoderMultiplication mode);
  * @param clearMember If true, reset position and state fields
  * @return RC_OK if OK, otherwise RC_UNINITIALIZED;
 */
-int deinit_encoder(EncoderInfo* target, bool clearMember);
+int deinit_encoder(EncoderInfo* target, bool cleared);
 
 /**
  * @brief Get the current position of an encoder

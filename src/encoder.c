@@ -1,4 +1,5 @@
 #include "mecanum/encoder.h"
+#include <assert.h>
 
 /**      
  * defined the state as follows: (if the lower 2 bits are AB)
@@ -54,18 +55,47 @@ EncoderInfo ENCODERS[ROBOT_MANAGED_WHEEL_COUNT] = {
     {.encoder = {.cha = ENCODER_REAR_RIGHT_CH_A, .chb = ENCODER_REAR_RIGHT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .prevState = 0x0, .initialized = false}
 };
 #endif //DEBUG
-static const int8_t TRANSITION[4][4] = {
-    {0, -1, 1, 0},
-    {1, 0, 0, -1},
-    {-1, 0, 0, 1},
-    {0, 1, -1, 0}
-};
 
-static void on_edge_changed(int gpio, int level, uint32_t tick, void* userdata) {
+static void on_edge_changed_x1(int gpio, int level, uint32_t tick, void* userdata) {
+    assert(userdata != NULL);
+    EncoderInfo* ei = (EncoderInfo*)userdata;
+    
+    assert(gpio == ei->encoder.cha);
+    if (tick - ei->tick < MIN_PULSE_US) return;
+    
+    //There is always an interruption when the edge is standing, so just check at B
+    ei->position += gpioRead(ei->encoder.chb) == LOW ? 1 : -1;
+    ei->tick = tick;
+}
+
+static void on_edge_changed_x2(int gpio, int level, uint32_t tick, void* userdata) {
+    assert(userdata != NULL);
+    EncoderInfo* ei = (EncoderInfo*)userdata;
+
+    assert(gpio == ei->encoder.cha);
+    if (tick - ei->tick < MIN_PULSE_US) return;
+    
+    static const int8_t LOOKUP_X2[2][2] = {{-1, 1}, {1, -1}};
+        
+    int levelA = level;
+    int levelB = gpioRead(ei->encoder.chb);
+
+    ei->position += LOOKUP_X2[levelA][levelB];
+    ei->tick = tick;
+}
+
+static void on_edge_changed_x4(int gpio, int level, uint32_t tick, void* userdata) {
     assert(userdata != NULL);
     EncoderInfo* ei = (EncoderInfo*)userdata;
 
     if (tick - ei->tick < MIN_PULSE_US) return;
+
+    static const int8_t LOOKUP_X4[4][4] = {
+        {0, -1, 1, 0},
+        {1, 0, 0, -1},
+        {-1, 0, 0, 1},
+        {0, 1, -1, 0}
+    };
 
     int levelA, levelB;
 
@@ -79,10 +109,10 @@ static void on_edge_changed(int gpio, int level, uint32_t tick, void* userdata) 
     }
 
     int currentState = (levelA << 1) | levelB;
-    int prevState = ei->prevState & MASK_LOWER2;
+    int prevState = ei->prevState;
     
-    ei->position += TRANSITION[prevState][currentState];
-    ei->prevState = currentState;
+    ei->position += LOOKUP_X4[prevState][currentState];
+    ei->prevState = currentState & MASK_LOWER2;
     ei->tick = tick;
 }  
 
@@ -126,7 +156,7 @@ int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
 
     switch (mode) {
         case X1:
-            if (gpioSetISRFuncEx(target->encoder.cha, RISING_EDGE, 0, on_edge_changed, target) < 0) {
+            if (gpioSetISRFuncEx(target->encoder.cha, RISING_EDGE, 0, on_edge_changed_x1, target) < 0) {
 #ifdef DEBUG
                 debug_log(stderr, "[gpio invalid operation error]: Failed to register interrunpt on Encoder %s {GPIO (%u)} \n", get_encoder_name(target->index), target->encoder.cha);
 #endif //DEBUG
@@ -135,7 +165,7 @@ int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
             break;
 
         case X2:
-            if (gpioSetISRFuncEx(target->encoder.cha, EITHER_EDGE, 0, on_edge_changed, target) < 0) {
+            if (gpioSetISRFuncEx(target->encoder.cha, EITHER_EDGE, 0, on_edge_changed_x2, target) < 0) {
 #ifdef DEBUG
                 debug_log(stderr, "[gpio invalid operation error]: Failed to register interrupt on Encoder %s {GPIO (%u)} \n", get_encoder_name(target->index), target->encoder.cha);
 #endif //DEBUG
@@ -144,7 +174,7 @@ int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
             break;
 
         case X4:
-            if (gpioSetISRFuncEx(target->encoder.cha, EITHER_EDGE, 0, on_edge_changed, target) < 0 || gpioSetISRFuncEx(target->encoder.chb, EITHER_EDGE, 0, on_edge_changed, target) < 0) {
+            if (gpioSetISRFuncEx(target->encoder.cha, EITHER_EDGE, 0, on_edge_changed_x4, target) < 0 || gpioSetISRFuncEx(target->encoder.chb, EITHER_EDGE, 0, on_edge_changed_x4, target) < 0) {
 #ifdef DEBUG
                 debug_log(stderr, "[gpio invalid operation error]: Failed to register interrupt on Encoder %s {GPIO (%u, %u)} \n", get_encoder_name(target->index), target->encoder.cha, target->encoder.chb);
 #endif //DEBUG
@@ -163,7 +193,7 @@ int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
      return RC_OK;      
 }  
 
-int deinit_encoder(EncoderInfo* target, bool clearMember) {
+int deinit_encoder(EncoderInfo* target, bool cleared) {
     assert(target != NULL);
     if (!target->initialized) {
 #ifdef DEBUG
@@ -187,7 +217,7 @@ int deinit_encoder(EncoderInfo* target, bool clearMember) {
     }
     target->initialized = false;
     target->mode = UNSET;
-    if (clearMember) {
+    if (cleared) {
         target->position = 0;
         target->tick = 0;
         target->prevState = 0;
