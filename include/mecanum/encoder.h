@@ -1,7 +1,7 @@
 #ifndef LMP_PROJECT_HARDWARE_MECANUM_ENCODER_H_
 #define LMP_PROJECT_HARDWARE_MECANUM_ENCODER_H_
 
-#include "mecanum/config.h"
+#include "mecanum/daemon.h"
 
 /**
  * @file encoder.h
@@ -57,6 +57,8 @@ typedef struct {
     EncoderMultiplication mode; //Multiplication mode (X1, X2, or X4)  
     volatile int32_t position;  //Accumulated position
     volatile uint32_t tick;     //Timestamp of last tick (Internal use only)
+    int callback_id_a;          //callback id 
+    int callback_id_b;          //callback id 
     uint8_t prevState;          //Previous status (bit1 = A, bit0 = B) (Internal use only)
     bool initialized;           //Initialization status
     const uint8_t index;        //Encoder index (use debug)
@@ -74,6 +76,8 @@ typedef struct {
     EncoderMultiplication mode; //Multiplication mode (X1, X2, or X4)
     volatile int32_t position;  //Accumulated position
     volatile uint32_t tick;     //Timestamp of last tick (Internal use only)
+    int callback_id_a;          //callback id
+    int callback_id_b;          //callback id
     uint8_t prevState;          //Previous status (bit1 = A, bit0 = B) (Internal use only)
     bool initialized;           //Initialization status
 } EncoderInfo;
@@ -88,20 +92,22 @@ extern "C" {
 /**
  * @brief Initialize an encoder with given multiplication mode 
  *
+ * @param pi pigpiod demon handle
  * @param target Target encoder (e.g ENCODERS[0])
  * @param mode Multiplication mode (X1, X2, or X4)
  * @return RC_OK if OK, otherwise RC_ALREADY_INITIALIZED or RC_UNKNOWN_MODE or RC_INVALID_OPERATION
 */
-int init_encoder(EncoderInfo* target, EncoderMultiplication mode);
+int init_encoder(int pi, EncoderInfo* target, EncoderMultiplication mode);
 
 /**
  * @brief Deinitialize an encoder
  * 
+ * @param pi pigpiod demon handle
  * @param target Target encoder (e.g ENCODERS[0])
- * @param clearMember If true, reset position and state fields
+ * @param cleared If true, reset position and state fields
  * @return RC_OK if OK, otherwise RC_UNINITIALIZED;
 */
-int deinit_encoder(EncoderInfo* target, bool cleared);
+int deinit_encoder(int pi, EncoderInfo* target, bool cleared);
 
 /**
  * @brief Get the current position of an encoder

@@ -42,53 +42,54 @@
 
 #ifdef DEBUG
 EncoderInfo ENCODERS[ROBOT_MANAGED_WHEEL_COUNT] = {
-    {.encoder = {.cha = ENCODER_FRONT_LEFT_CH_A, .chb = ENCODER_FRONT_LEFT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .prevState = 0x0, .initialized = false, .index = 0},
-    {.encoder = {.cha = ENCODER_FRONT_RIGHT_CH_A, .chb = ENCODER_FRONT_RIGHT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .prevState = 0x0, .initialized = false, .index = 1},
-    {.encoder = {.cha = ENCODER_REAR_LEFT_CH_A, .chb = ENCODER_REAR_LEFT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .prevState = 0x0, .initialized = false, .index = 2},
-    {.encoder = {.cha = ENCODER_REAR_RIGHT_CH_A, .chb = ENCODER_REAR_RIGHT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .prevState = 0x0, .initialized = false, .index = 3}
+    {.encoder = {.cha = ENCODER_FRONT_LEFT_CH_A, .chb = ENCODER_FRONT_LEFT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .callback_id_a = -1, .callback_id_b = -1,  .prevState = 0x0, .initialized = false, .index = 0},
+    {.encoder = {.cha = ENCODER_FRONT_RIGHT_CH_A, .chb = ENCODER_FRONT_RIGHT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .callback_id_a = -1, .callback_id_b = -1, .prevState = 0x0, .initialized = false, .index = 1},
+    {.encoder = {.cha = ENCODER_REAR_LEFT_CH_A, .chb = ENCODER_REAR_LEFT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .callback_id_a = -1, .callback_id_b = -1, .prevState = 0x0, .initialized = false, .index = 2},
+    {.encoder = {.cha = ENCODER_REAR_RIGHT_CH_A, .chb = ENCODER_REAR_RIGHT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .callback_id_a = -1, .callback_id_b = -1, .prevState = 0x0, .initialized = false, .index = 3}
 };
 #else
 EncoderInfo ENCODERS[ROBOT_MANAGED_WHEEL_COUNT] = {
-    {.encoder = {.cha = ENCODER_FRONT_LEFT_CH_A, .chb = ENCODER_FRONT_LEFT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .prevState = 0x0, .initialized = false},
-    {.encoder = {.cha = ENCODER_FRONT_RIGHT_CH_A, .chb = ENCODER_FRONT_RIGHT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .prevState = 0x0, .initialized = false},
-    {.encoder = {.cha = ENCODER_REAR_LEFT_CH_A, .chb = ENCODER_REAR_LEFT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .prevState = 0x0, .initialized = false},
-    {.encoder = {.cha = ENCODER_REAR_RIGHT_CH_A, .chb = ENCODER_REAR_RIGHT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .prevState = 0x0, .initialized = false}
+    {.encoder = {.cha = ENCODER_FRONT_LEFT_CH_A, .chb = ENCODER_FRONT_LEFT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .callback_id_a = -1, .callback_id_b = -1, .prevState = 0x0, .initialized = false},
+    {.encoder = {.cha = ENCODER_FRONT_RIGHT_CH_A, .chb = ENCODER_FRONT_RIGHT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .callback_id_a = -1, .callback_id_b = -1, .prevState = 0x0, .initialized = false},
+    {.encoder = {.cha = ENCODER_REAR_LEFT_CH_A, .chb = ENCODER_REAR_LEFT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .callback_id_a = -1, .callback_id_b = -1, .prevState = 0x0, .initialized = false},
+    {.encoder = {.cha = ENCODER_REAR_RIGHT_CH_A, .chb = ENCODER_REAR_RIGHT_CH_B}, .mode = UNSET, .position = 0, .tick = 0, .callback_id_a = -1, .callback_id_b = -1, .prevState = 0x0, .initialized = false}
 };
 #endif //DEBUG
 
-static void on_edge_changed_x1(int gpio, int level, uint32_t tick, void* userdata) {
+static void on_edge_changed_x1(int pi, unsigned int gpio, unsigned int level, uint32_t tick, void* userdata) {
     assert(userdata != NULL);
+    UNUSED_PARAMETER(level);
     EncoderInfo* ei = (EncoderInfo*)userdata;
     
     assert(gpio == ei->encoder.cha);
-    if (tick - ei->tick < MIN_PULSE_US) return;
+    if ((uint32_t)(tick - ei->tick) < MIN_PULSE_US) return;
     
     //There is always an interruption when the edge is standing, so just check at B
-    ei->position += gpioRead(ei->encoder.chb) == LOW ? 1 : -1;
+    ei->position += gpio_read(pi, ei->encoder.chb) == LOW ? 1 : -1;
     ei->tick = tick;
 }
 
-static void on_edge_changed_x2(int gpio, int level, uint32_t tick, void* userdata) {
+static void on_edge_changed_x2(int pi, unsigned int gpio, unsigned int level, uint32_t tick, void* userdata) {
     assert(userdata != NULL);
     EncoderInfo* ei = (EncoderInfo*)userdata;
 
     assert(gpio == ei->encoder.cha);
-    if (tick - ei->tick < MIN_PULSE_US) return;
+    if ((uint32_t)(tick - ei->tick) < MIN_PULSE_US) return;
     
     static const int8_t LOOKUP_X2[2][2] = {{-1, 1}, {1, -1}};
         
     int levelA = level;
-    int levelB = gpioRead(ei->encoder.chb);
+    int levelB = gpio_read(pi, ei->encoder.chb);
 
     ei->position += LOOKUP_X2[levelA][levelB];
     ei->tick = tick;
 }
 
-static void on_edge_changed_x4(int gpio, int level, uint32_t tick, void* userdata) {
+static void on_edge_changed_x4(int pi, unsigned int gpio, unsigned int level, uint32_t tick, void* userdata) {
     assert(userdata != NULL);
     EncoderInfo* ei = (EncoderInfo*)userdata;
 
-    if (tick - ei->tick < MIN_PULSE_US) return;
+	if ((uint32_t)(tick - ei->tick) < MIN_PULSE_US) return;
 
     static const int8_t LOOKUP_X4[4][4] = {
         {0, -1, 1, 0},
@@ -101,14 +102,14 @@ static void on_edge_changed_x4(int gpio, int level, uint32_t tick, void* userdat
 
     if (gpio == ei->encoder.cha) {
         levelA = level;
-        levelB = gpioRead(ei->encoder.chb);
+        levelB = gpio_read(pi, ei->encoder.chb);
     }
     else {
-        levelA = gpioRead(ei->encoder.cha);
+        levelA = gpio_read(pi, ei->encoder.cha);
         levelB = level;
     }
 
-    int currentState = (levelA << 1) | levelB;
+    int currentState = ((levelA << 1) | levelB) & MASK_LOWER2;
     int prevState = ei->prevState;
     
     ei->position += LOOKUP_X4[prevState][currentState];
@@ -116,19 +117,19 @@ static void on_edge_changed_x4(int gpio, int level, uint32_t tick, void* userdat
     ei->tick = tick;
 }  
 
-static inline int init_encoder_gpio(const EncoderInfo* target) {
+static inline int init_encoder_gpio(int pi, const EncoderInfo* target) {
     unsigned int cha = target->encoder.cha;
     unsigned int chb = target->encoder.chb;   
 
-    //returns 0 if OK, otherwise PI_BAD_GPIO or PI_BAD_MODE
-    if (gpioSetMode(cha, PI_INPUT) < 0 || gpioSetMode(chb, PI_INPUT) < 0) {
+    //returns 0 if OK, otherwise PI_BAD_GPIO or PI_BAD_MODE, PI_NOT_PREMITED
+    if (set_mode(pi, cha, PI_INPUT) < 0 || set_mode(pi, chb, PI_INPUT) < 0) {
 #ifdef DEBUG
         debug_log(stderr, "[gpio invalid operation error]: Failed to set input on Encoder %s {GPIO (%u, %u)} \n", get_encoder_name(target->index), cha, chb);
 #endif //DEBUG
        return RC_INVALID_OPERATION;
     } 
-    //returns 0 if OK, otherwise PI_BAD_GPIO or PI_BAD_PUD
-    if (gpioSetPullUpDown(cha, PI_PUD_UP) < 0 || gpioSetPullUpDown(chb, PI_PUD_UP) < 0) {
+    //returns 0 if OK, otherwise PI_BAD_GPIO or PI_BAD_PUD, PI_NOT_PREMITED
+    if (set_pull_up_down(pi, cha, PI_PUD_UP) < 0 || set_pull_up_down(pi, chb, PI_PUD_UP) < 0) {
 #ifdef DEBUG
         debug_log(stderr, "[gpio invalid operation error]: Failed to set pull up on Encoder %s {GPIO (%u, %u)} \n", get_encoder_name(target->index), cha, chb);
 #endif //DEBUG
@@ -137,26 +138,28 @@ static inline int init_encoder_gpio(const EncoderInfo* target) {
     return RC_OK;
  } 
  
-int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
-   assert(target != NULL);
-  
+int init_encoder(int pi, EncoderInfo* target, EncoderMultiplication mode) {
+    assert(target != NULL);
+    assert(pi >= 0);
+
     if (target->initialized) {
 #ifdef DEBUG
-        debug_log(stdout, "[gpio setup warning]: Encoder %s {GPIO (%u, %u)} is already initialized \n", get_encoder_name(target->index), target->encoder.cha, target->encoder.chb);
+        debug_log(stdout, "[gpio sietup warning]: Encoder %s {GPIO (%u, %u)} is already initialized \n", get_encoder_name(target->index), target->encoder.cha, target->encoder.chb);
 #endif //DEBUG
         return RC_ALREADY_INITIALIZED; 
     }
-    if (init_encoder_gpio(target) != RC_OK) {
+    if (init_encoder_gpio(pi, target) != RC_OK) {
         return RC_INVALID_OPERATION;
     } 
 
-    int levelA = gpioRead(target->encoder.cha);
-    int levelB = gpioRead(target->encoder.chb);
-    target->prevState = (levelA << 1) | levelB;
+    int levelA = gpio_read(pi, target->encoder.cha);
+    int levelB = gpio_read(pi, target->encoder.chb);
+    target->prevState = ((levelA << 1) | levelB) & MASK_LOWER2;
 
     switch (mode) {
         case X1:
-            if (gpioSetISRFuncEx(target->encoder.cha, RISING_EDGE, 0, on_edge_changed_x1, target) < 0) {
+            target->callback_id_a = callback_ex(pi, target->encoder.cha, RISING_EDGE, on_edge_changed_x1, target);
+            if (target->callback_id_a < 0) {
 #ifdef DEBUG
                 debug_log(stderr, "[gpio invalid operation error]: Failed to register interrunpt on Encoder %s {GPIO (%u)} \n", get_encoder_name(target->index), target->encoder.cha);
 #endif //DEBUG
@@ -165,7 +168,8 @@ int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
             break;
 
         case X2:
-            if (gpioSetISRFuncEx(target->encoder.cha, EITHER_EDGE, 0, on_edge_changed_x2, target) < 0) {
+            target->callback_id_a = callback_ex(pi, target->encoder.cha, EITHER_EDGE, on_edge_changed_x2, target);
+            if (target->callback_id_a < 0) {
 #ifdef DEBUG
                 debug_log(stderr, "[gpio invalid operation error]: Failed to register interrupt on Encoder %s {GPIO (%u)} \n", get_encoder_name(target->index), target->encoder.cha);
 #endif //DEBUG
@@ -174,7 +178,9 @@ int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
             break;
 
         case X4:
-            if (gpioSetISRFuncEx(target->encoder.cha, EITHER_EDGE, 0, on_edge_changed_x4, target) < 0 || gpioSetISRFuncEx(target->encoder.chb, EITHER_EDGE, 0, on_edge_changed_x4, target) < 0) {
+            target->callback_id_a = callback_ex(pi, target->encoder.cha, EITHER_EDGE, on_edge_changed_x4, target);
+            target->callback_id_b = callback_ex(pi, target->encoder.chb, EITHER_EDGE, on_edge_changed_x4, target);
+            if (target->callback_id_a < 0 || target->callback_id_b < 0) {
 #ifdef DEBUG
                 debug_log(stderr, "[gpio invalid operation error]: Failed to register interrupt on Encoder %s {GPIO (%u, %u)} \n", get_encoder_name(target->index), target->encoder.cha, target->encoder.chb);
 #endif //DEBUG
@@ -183,8 +189,6 @@ int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
             break;
 
         default:
-#ifdef DEBUG 
-#endif //DEBUG
        return RC_UNKNOWN_MODE;
     }
 
@@ -193,8 +197,10 @@ int init_encoder(EncoderInfo* target, EncoderMultiplication mode) {
      return RC_OK;      
 }  
 
-int deinit_encoder(EncoderInfo* target, bool cleared) {
+int deinit_encoder(int pi, EncoderInfo* target, bool cleared) {
     assert(target != NULL);
+    assert(pi >= 0);
+
     if (!target->initialized) {
 #ifdef DEBUG
         debug_log(stderr, "[gpio setup warning]: Encoder %s {GPIO (%u, %u}) has not been initialized yet, please call init_encoder() before this function", get_encoder_name(target->index), target->encoder.cha, target->encoder.chb);
@@ -203,20 +209,27 @@ int deinit_encoder(EncoderInfo* target, bool cleared) {
     }
     switch (target->mode) {
     case X1:
-        (void)gpioSetISRFuncEx(target->encoder.cha, RISING_EDGE, 0, NULL, NULL);
+        if (target->callback_id_a >= 0)
+            (void)callback_cancel((unsigned int)target->callback_id_a);
         break;
     case X2:
-        (void)gpioSetISRFuncEx(target->encoder.cha, EITHER_EDGE, 0, NULL, NULL);
+        if (target->callback_id_a >= 0)
+            (void)callback_cancel((unsigned int)target->callback_id_a);
         break;
     case X4:
-        (void)gpioSetISRFuncEx(target->encoder.cha, EITHER_EDGE, 0, NULL, NULL);
-        (void)gpioSetISRFuncEx(target->encoder.chb, EITHER_EDGE, 0, NULL, NULL);
+        if (target->callback_id_a >= 0)
+            (void)callback_cancel((unsigned int)target->callback_id_a);
+        if (target->callback_id_b >= 0) 
+            (void)callback_cancel((unsigned int)target->callback_id_b);
         break;
     default:
         break;
     }
     target->initialized = false;
     target->mode = UNSET;
+    target->callback_id_a = -1;
+    target->callback_id_b = -1;
+
     if (cleared) {
         target->position = 0;
         target->tick = 0;

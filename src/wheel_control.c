@@ -32,9 +32,9 @@ static inline int check_init(const MotorDriveInfo* target) {
     return RC_OK;
 }
 
-static inline int init_wheel_gpio(const MotorDriveInfo* target) {
-   //returns 0 if OK, otherwise PI_BAD_GPIO or PI_BAD_MODE
-    if (gpioSetMode(target->motordrive.in1, PI_OUTPUT) < 0 || gpioSetMode(target->motordrive.in2, PI_OUTPUT) < 0) {
+static inline int init_wheel_gpio(int pi, const MotorDriveInfo* target) {
+   //returns 0 if OK, otherwise PI_BAD_GPIO or PI_BAD_MODE, PI_NOT_PERMITED
+    if (set_mode(pi, target->motordrive.in1, PI_OUTPUT) < 0 || set_mode(pi, target->motordrive.in2, PI_OUTPUT) < 0) {
 #ifdef DEBUG
         debug_log(stderr, "[gpio invalid operation error]: Failed to set output on Wheel %s {GPIO (%u, %u)} \n", get_wheel_name(target->index), target->motordrive.in1, target->motordrive.in2);
 #endif //DEBUG
@@ -43,16 +43,16 @@ static inline int init_wheel_gpio(const MotorDriveInfo* target) {
     return RC_OK;
 }
 
-static inline int init_wheel_pwm(const MotorDriveInfo* target) {
-    //returns the numerically closest frequency if OK, otherwise PI_BAD_USER_GPIO
-    if (gpioSetPWMfrequency(target->motordrive.in1, FREQUENCY) < 0 || gpioSetPWMfrequency(target->motordrive.in2, FREQUENCY) < 0) {
+static inline int init_wheel_pwm(int pi, const MotorDriveInfo* target) {
+    //returns the numerically closest frequency if OK, otherwise PI_BAD_USER_GPIO or PI_NOT_PERMITED
+    if (set_PWM_frequency(pi, target->motordrive.in1, FREQUENCY) < 0 || set_PWM_frequency(pi, target->motordrive.in2, FREQUENCY) < 0) {
 #ifdef DEBUG
         debug_log(stderr, "[gpio invalid operation error]: Failed to set freq %u on Wheel %s {GPIO (%u, %u)} \n", FREQUENCY, get_wheel_name(target->index), target->motordrive.in1, target->motordrive.in2);
 #endif //DEBUG
        return RC_INVALID_OPERATION;
     }
-    //returns the real range for the given GPIO's frequency if OK, otherwise PI_BAD_USER_GPIO or PI_BAD_DUTYCYCLE
-    if (gpioSetPWMrange(target->motordrive.in1, DUTYCYCLE_RANGE) < 0 || gpioSetPWMrange(target->motordrive.in2, DUTYCYCLE_RANGE) < 0) { 
+    //returns the real range for the given GPIO's frequency if OK, otherwise PI_BAD_USER_GPIO or PI_BAD_DUTYCYCLE, PI_NOT_PERMITED
+    if (set_PWM_range(pi, target->motordrive.in1, DUTYCYCLE_RANGE) < 0 || set_PWM_range(pi, target->motordrive.in2, DUTYCYCLE_RANGE) < 0) { 
 #ifdef DEBUG
         debug_log(stderr, "[gpio invalid operation error]: Failed to set range %u on Wheel %s {GPIO (%u, %u)}", DUTYCYCLE_RANGE, get_wheel_name(target->index), target->motordrive.in1, target->motordrive.in2);
 #endif //DEBUG
@@ -61,8 +61,8 @@ static inline int init_wheel_pwm(const MotorDriveInfo* target) {
     return RC_OK;
 }
 
-static inline int write_pwm(const MotorDriveGPIO* motordrive, unsigned int in1Duty, unsigned int in2Duty) {
-    if (gpioPWM(motordrive->in1, in1Duty) < 0 || gpioPWM(motordrive->in2, in2Duty) < 0) {
+static inline int write_pwm(int pi, const MotorDriveGPIO* motordrive, unsigned int in1Duty, unsigned int in2Duty) {
+    if (set_PWM_dutycycle(pi, motordrive->in1, in1Duty) < 0 || set_PWM_dutycycle(pi, motordrive->in2, in2Duty) < 0) {
 #ifdef DEBUG
         debug_log(stderr, "[gpio invalid operation error]: Failed to write pwm to GPIO (%u, %u) \n", motordrive->in1, motordrive->in2);
 #endif //DEBUG
@@ -71,8 +71,9 @@ static inline int write_pwm(const MotorDriveGPIO* motordrive, unsigned int in1Du
     return RC_OK;
 }
 
-int init_wheel(MotorDriveInfo* target) {
+int init_wheel(int pi, MotorDriveInfo* target) {
     assert(target != NULL);
+    assert(pi >= 0);
 
     if (target->initialized) {
 #ifdef DEBUG
@@ -82,58 +83,62 @@ int init_wheel(MotorDriveInfo* target) {
     }
 
     int rc;
-    rc = init_wheel_gpio(target);
+    rc = init_wheel_gpio(pi, target);
     if (rc != RC_OK) {
         return rc;
     }
-    rc = init_wheel_pwm(target);
+    rc = init_wheel_pwm(pi, target);
     if (rc != RC_OK) {
         return rc;
     }
 
     target->initialized = true;
-    return write_pwm(&target->motordrive, 0, 0);
+    return write_pwm(pi, &target->motordrive, 0, 0);
 }
 
-int forward(const MotorDriveInfo* target, unsigned int duty) {
+int forward(int pi, const MotorDriveInfo* target, unsigned int duty) {
     assert(target != NULL);
+    assert(pi >= 0);
 
     if (unlikely(check_init(target) != RC_OK)) {
         return RC_UNINITIALIZED;
     }
     
     duty = clamp_upper(duty, DUTYCYCLE_RANGE);
-    return write_pwm(&target->motordrive, duty, 0);
+    return write_pwm(pi, &target->motordrive, duty, 0);
 }
 
-int reverse(const MotorDriveInfo* target, unsigned int duty) {
+int reverse(int pi, const MotorDriveInfo* target, unsigned int duty) {
     assert(target != NULL);
+    assert(pi >= 0);
 
     if (unlikely(check_init(target) != RC_OK)) {
         return RC_UNINITIALIZED;
     }
 
     duty = clamp_upper(duty, DUTYCYCLE_RANGE);
-    return write_pwm(&target->motordrive, 0, duty);
+    return write_pwm(pi, &target->motordrive, 0, duty);
 
 }
 
-int idle(const MotorDriveInfo* target) {
+int idle(int pi, const MotorDriveInfo* target) {
     assert(target != NULL);
+    assert(pi >= 0);
 
     if (unlikely(check_init(target) != RC_OK)) {
         return RC_UNINITIALIZED;
     }
 
-    return write_pwm(&target->motordrive, 0, 0);
+    return write_pwm(pi, &target->motordrive, 0, 0);
 }
 
-int brake(const MotorDriveInfo* target) {
+int brake(int pi, const MotorDriveInfo* target) {
     assert(target != NULL);
+    assert(pi >= 0);
 
     if (unlikely(check_init(target) != RC_OK)) {
         return RC_UNINITIALIZED;
     }
 
-    return write_pwm(&target->motordrive, DUTYCYCLE_RANGE, DUTYCYCLE_RANGE);
+    return write_pwm(pi, &target->motordrive, DUTYCYCLE_RANGE, DUTYCYCLE_RANGE);
 }

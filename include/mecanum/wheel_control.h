@@ -1,7 +1,7 @@
 #ifndef LMP_PROJECT_HARDWARE_MECANUM_WHEEL_CONTROL_H_
 #define LMP_PROJECT_HARDWARE_MECANUM_WHEEL_CONTROL_H_
 
-#include "mecanum/config.h"
+#include "mecanum/daemon.h"
 
 /**
  * @file wheel_control.h
@@ -68,37 +68,41 @@ extern "C" {
 /**
  * @brief Initialize a wheel motor driver
  *
+ * @param pi pigpid demon handle
  * @param target Target wheel motor driver (e.g WHEELS[0])
  * @return RC_OK if OK, otherwise RC_ALREADY_INITIALIZED or RC_INVALID_OPERATION
 */
-int init_wheel(MotorDriveInfo* target);
+int init_wheel(int pi, MotorDriveInfo* target);
 
 /**
  * @brief Drive the wheel forward with specified duty cycle
  *
+ * @param pi pigpiod demon handle
  * @param target Target wheel motor driver (e.g WHEELS[0])
  * @param duty Duty cycle (0 to DUTYCYCLE_RANGE)
  * @return RC_OK if OK, otherwise RC_UNINITIALIZED or RC_INVALID_OPERATION
 */
-int forward(const MotorDriveInfo* target, unsigned int duty);
+int forward(int pi, const MotorDriveInfo* target, unsigned int duty);
 
 /**
  * @brief Drive the wheel reverse with specified duty cycle
  *
+ * @param pi pigpiod demon handle 
  * @param target Target wheel motor driver (e.g WHEELS[0])
  * @param duty Duty cycle (0 to DUTYCYCLE_RANGE)
  * @return RC_OK if OK, otherwise RC_UNINITIALIZED or RC_INVALID_OPERATION
  *
 */
-int reverse(const MotorDriveInfo* target, unsigned int duty);
+int reverse(int pi, const MotorDriveInfo* target, unsigned int duty);
 
 /**
  * @brief Set the wheel to idle (free-running)
  *
+ * @param pi pigpid demon handle
  * @param target Target wheel motor driver
  * @return RC_OK if OK, otherwise RC_UNINITIALIZED or RC_INVALID_OPERATION
 */
-int idle(const MotorDriveInfo* target);
+int idle(int pi, const MotorDriveInfo* target);
 
 /**
  * @brief Apply on emergency brake to the wheel (short brake)
@@ -106,10 +110,11 @@ int idle(const MotorDriveInfo* target);
  * This drives both motor terminals high, causing an abrupt stop
  * Use only emergency stops; frequent use may cause stress on hardware
  *
+ * @param pi pigpid demon handle
  * @param target Target wheel motor driver 
  * @return RC_OK if OK, otherwise RC_UNINITIALIZED or RC_INVALID_OPERATION
 */
-int brake(const MotorDriveInfo* target);
+int brake(int pi, const MotorDriveInfo* target);
 
 #ifdef __cplusplus
 }

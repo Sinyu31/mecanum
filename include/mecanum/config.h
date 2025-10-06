@@ -6,7 +6,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdatomic.h>
-#include <pigpio.h>
+#include <pigpiod_if2.h>
 #include <assert.h>
 #include <time.h>
 
@@ -27,6 +27,10 @@
 #define RC_INVALID_OPERATION -1
 #define RC_UNINITIALIZED -2
 #define RC_UNKNOWN_MODE -3
+#define RC_FAIL_DAEMON_CONNECT -4
+
+#define LOCALHOST NULL
+#define DEFAULT_PORT NULL
 
 #if defined(__GNUC__) || defined(__clang__)
   #define likely(x) __builtin_expect(!!x, 1)
@@ -36,5 +40,6 @@
   #define unlikely(x) !!(x)
 #endif
 
+#define UNUSED_PARAMETER(x) (void)x
 
 #endif //LMP_PROJECT_HARDWARE_MECANUM_CONFIG_H_
