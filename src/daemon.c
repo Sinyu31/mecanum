@@ -1,7 +1,6 @@
 #include "mecanum/daemon.h"
 
 int pigpiod_daemon_open(const char* addr, const char* port) {
-    
         int pi = pigpio_start(addr, port);
         if (pi >= 0) return pi;
 #ifdef DEBUG

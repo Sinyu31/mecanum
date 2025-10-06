@@ -120,10 +120,18 @@ int32_t get_position(const EncoderInfo* target);
 /**
  * @brief Manually set the position of an encoder
  *
- * @param target Target Encoder (e.g ENCODERS[0])
+ * @param target Target encoder (e.g ENCODERS[0])
  * @param val new position
 */
 void set_position(EncoderInfo* target, int32_t val);
+
+/**
+ * @brief Get the encoder multiplier
+ * 
+ * @ param target Target encoder (e.g ENCODERS[0])
+ * @return Encoder multiplier (1, 2, or 4)
+*/
+int get_multiplier(const EncoderInfo* target);
 #ifdef __cplusplus
 }
 #endif //__cplusplus

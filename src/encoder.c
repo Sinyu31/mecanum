@@ -247,3 +247,7 @@ void set_position(EncoderInfo* target, int32_t val){
     assert(target != NULL);
     target->position = val;
 }
+
+int get_multiplier(const EncoderInfo *target) {
+    return (int)target->mode;
+}
