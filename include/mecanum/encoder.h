@@ -64,7 +64,6 @@ typedef struct {
     const uint8_t index;        //Encoder index (use debug)
 } EncoderInfo;
 
-extern EncoderInfo ENCODERS[ROBOT_MANAGED_WHEEL_COUNT];
 #else
 /**
  * @struct EncoderInfo
@@ -82,12 +81,13 @@ typedef struct {
     bool initialized;           //Initialization status
 } EncoderInfo;
 
-extern EncoderInfo ENCODERS[ROBOT_MANAGED_WHEEL_COUNT];
 #endif //DEBUG
 
 #ifdef  __cplusplus
 extern "C" {
 #endif //__cplusplus
+
+extern EncoderInfo ENCODERS[ROBOT_MANAGED_WHEEL_COUNT];
 
 /**
  * @brief Initialize an encoder with given multiplication mode 

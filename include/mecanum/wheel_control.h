@@ -47,7 +47,6 @@ typedef struct {
     const uint8_t index;       //Wheel index (use debug)
 } MotorDriveInfo;
 
-extern MotorDriveInfo WHEELS[ROBOT_MANAGED_WHEEL_COUNT];
 #else
 /**
  * @struct MotorDriveInfo
@@ -58,12 +57,13 @@ typedef struct {
     bool initialized;          //Initialization status
 } MotorDriveInfo;
 
-extern MotorDriveInfo WHEELS[ROBOT_MANAGED_WHEEL_COUNT];
 #endif //DEBUG
 
 #ifdef __cplusplus
 extern "C" {
 #endif //__cplusplus
+
+extern MotorDriveInfo WHEELS[ROBOT_MANAGED_WHEEL_COUNT];
 
 /**
  * @brief Initialize a wheel motor driver
