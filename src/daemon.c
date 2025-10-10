@@ -9,7 +9,7 @@ int pigpiod_daemon_open(const char* addr, const char* port) {
        return RC_FAIL_DAEMON_CONNECT;
 }
 
-void pigpiod_demon_close(int pi) {
+void pigpiod_daemon_close(int pi) {
     assert(pi >= 0);
     pigpio_stop(pi);
 }
