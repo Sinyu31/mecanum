@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
-#include <stdatomic.h>
 #include <pigpiod_if2.h>
 #include <assert.h>
 #include <time.h>
