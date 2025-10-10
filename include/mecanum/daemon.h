@@ -31,7 +31,7 @@ int pigpiod_daemon_open(const char* addr, const char* port);
  *
  * @param handle The handle returned by pigpiod_daemon_open().
 */
-void pigpiod_daemon_close(int handle);
+void pigpiod_daemon_close(int pi);
 
 #ifdef __cplusplus
 }
